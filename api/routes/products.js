@@ -1,17 +1,28 @@
 const Product = require('../models/product')
 const mongoose = require('mongoose')
 
-module.exports = function(app) {
-    const router = app.Router()
-
+module.exports = function(router) {
     router.get('/', (req, res, next) => {
         Product.find()
+            .select('name price _id')
             .exec()
             .then(docs => {
-                console.log(docs)
-                docs.length >= 0
-                    ? res.status(200).json(docs)
-                    : res.status(500).json({ message: 'No entries foundproducts' })
+                const response = {
+                    count: docs.length,
+                    products: docs.map(doc => ({
+                        name: doc.name,
+                        price: doc.price,
+                        _id: doc._id,
+                        request: {
+                            type: 'GET',
+                            url: 'http://localhost:3001/products/' + doc._id
+                        }
+                    }))
+                }
+                res.status(200).json(response)
+                // docs.length >= 0
+                //     ? res.status(200).json(docs)
+                //     : res.status(500).json({ message: 'No entries foundproducts' })
             })
             .catch(err => {
                 console.error(err)
@@ -25,9 +36,14 @@ module.exports = function(app) {
         Product.findById(id)
             .exec()
             .then(doc => {
-                console.log("From database", doc)
                 doc
-                    ? res.status(200).json(doc)
+                    ? res.status(200).json({
+                        product: doc,
+                        request: {
+                            type: 'GET',
+                            url: 'http://localhost:3001/products'
+                        }
+                    })
                     : res.status(404).json({ message: 'No valid id' })
             })
             .catch(err => {
@@ -47,11 +63,18 @@ module.exports = function(app) {
 
         createdProduct
             .save()
-            .then(result =>{
-                console.log(result)
+            .then(result => {
                 res.status(201).json({
-                    message: 'Handling POST request to /products',
-                    createdProduct: result
+                    message: 'Created product successfully',
+                    createdProduct: {
+                        name: result.name,
+                        price: result.price,
+                        _id: result._id,
+                        request: { 
+                            type: 'GET',
+                            url: 'http://localhost:3001/products/' + result._id
+                        }
+                    }
                 })
             })
             .catch(err => {
@@ -71,8 +94,13 @@ module.exports = function(app) {
         Product.update({ _id: id }, { $set: updateOps })
             .exec()
             .then(result => {
-                console.log(result)
-                res.status(200).json(result)
+                res.status(200).json({
+                    message: 'Product updated',
+                    request: {
+                        type: 'GET',
+                        url: 'http://localhost:3001/products/' + id
+                    }
+                })
             })
             .catch(err => {
                 console.error(err)
@@ -86,7 +114,14 @@ module.exports = function(app) {
         Product.remove({ _id: id })
             .exec()
             .then(result => {
-                res.status(200).json(result)
+                res.status(200).json({
+                    message: 'Product deleted',
+                    request: { 
+                        type: 'POST',
+                        url: 'http://localhost:3001/products',
+                        body: { name: 'String', price: 'Number' }
+                    }
+                })
             })
             .catch(err => {
                 console.error(err)

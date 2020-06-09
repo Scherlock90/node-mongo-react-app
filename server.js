@@ -2,6 +2,7 @@ const express = require('express')
 const path = require('path')
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
+const mongoose = require('mongoose')
 
 const connection = require('./connection/connection')
 const productRoutes = require('./api/routes/products')
@@ -9,6 +10,8 @@ const ordersRoutes = require('./api/routes/orders')
 const product = require('./api/models/product')
 
 connection()
+
+mongoose.Promise = global.Promise;
 
 const app = express()
 
@@ -32,8 +35,8 @@ app.use((req, res, next) => {
     next()
 })
 
-app.use('/products', productRoutes(express))
-app.use('/orders', ordersRoutes(express))
+app.use('/products', productRoutes(express.Router()))
+app.use('/orders', ordersRoutes(express.Router(), mongoose))
 
 app.use((req, res, next) => {
     const error = new Error('Not found')
